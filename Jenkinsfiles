@@ -38,28 +38,20 @@ pipeline {
             }
         }
 
-        stage('Deploy To App Server') {
+        stage('Run Container') {
             steps {
-                sshagent(['app-server-ssh']) {
-                    sh '''
-                    ssh jenkins@13.201.183.204<< EOF
-
-                    docker pull $IMAGE_NAME
-
+                sh '''
                     docker stop myapp || true
                     docker rm myapp || true
 
                     docker run -d \
-                      --name myapp \
-                      -p 8080:8080 \
-                      -e DB_URL="$DB_URL" \
-                      -e DB_USER="$DB_USER" \
-                      -e DB_PASSWORD="$DB_PASSWORD" \
-                      $IMAGE_NAME
-
-                    EOF
-                    '''
-                }
+                        --name myapp \
+                        --restart unless-stopped \
+                        --env-file /opt/myapp/.env \
+                        -p 8080:8080 \
+                        ${IMAGE}
+                '''
+            }
             }
         }
     }
