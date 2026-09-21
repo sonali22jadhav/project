@@ -38,21 +38,21 @@ pipeline {
             }
         }
 
-        stage('Run Container') {
-            steps {
-                sh '''
-                    docker stop myapp || true
-                    docker rm myapp || true
+       stage('Run Container') {
+    steps {
+        sh '''
+            docker stop myapp || true
+            docker rm myapp || true
 
-                    docker run -d \
-                        --name myapp \
-                        --restart unless-stopped \
-                        --env-file /opt/myapp/.env \
-                        -p 8080:8080 \
-                        ${IMAGE}
-                '''
-                 }
+            docker run -d \
+                --name myapp \
+                --restart unless-stopped \
+                --env-file /opt/myapp/.env \
+                -p 8080:8080 \
+                sonali22jadhav/myapp:${BUILD_NUMBER}
+        '''
             }
+          }
         }
     }
 
