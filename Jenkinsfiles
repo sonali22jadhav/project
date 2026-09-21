@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = "mycompany/myapp:${BUILD_NUMBER}"
+        IMAGE_NAME = "sonali22jadhav/myapp:${BUILD_NUMBER}"
     }
 
     stages {
@@ -40,7 +40,7 @@ pipeline {
             steps {
                 sshagent(['app-server-ssh']) {
                     sh '''
-                    ssh jenkins@APP_SERVER_IP << EOF
+                    ssh jenkins@ 13.201.183.204<< EOF
 
                     docker pull $IMAGE_NAME
 
