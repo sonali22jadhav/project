@@ -1,99 +1,64 @@
 pipeline {
-
     agent any
 
     environment {
-        IMAGE_NAME = "my-java-app"
-        CONTAINER_NAME = "my-java-app"
-
-        APP_SERVER = "ubuntu@YOUR_APP_SERVER_IP"
-
-        RDS_HOST = "YOUR-RDS-ENDPOINT"
-        RDS_PORT = "3306"
-        RDS_DB   = "appdb"
+        IMAGE_NAME = "mycompany/myapp:${BUILD_NUMBER}"
     }
 
     stages {
 
-        stage('Checkout') {
+        stage('Build WAR') {
             steps {
-                git branch: 'main',
-                    url: 'https://github.com/YOUR_USERNAME/YOUR_REPO.git'
+                sh 'mvn clean package'
             }
         }
 
-        stage('Build & Test') {
+        stage('Build Docker Image') {
             steps {
-                sh 'mvn clean test package'
+                sh 'docker build -t $IMAGE_NAME .'
             }
         }
 
-        stage('Docker Build') {
+        stage('Push Image') {
             steps {
-                sh 'docker build -t ${IMAGE_NAME}:latest .'
-            }
-        }
-
-        stage('Copy Image') {
-            steps {
-
-                sshagent(['app-server-ssh']) {
-
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'dockerhub-creds',
+                        usernameVariable: 'DOCKER_USER',
+                        passwordVariable: 'DOCKER_PASS'
+                    )
+                ]) {
                     sh '''
-                        docker save ${IMAGE_NAME}:latest -o app.tar
-
-                        scp -o StrictHostKeyChecking=no \
-                            app.tar \
-                            ${APP_SERVER}:/tmp/app.tar
+                        echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+                        docker push $IMAGE_NAME
                     '''
                 }
             }
         }
 
-        stage('Deploy') {
+        stage('Deploy To App Server') {
             steps {
-
                 sshagent(['app-server-ssh']) {
+                    sh '''
+                    ssh ubuntu@APP_SERVER_IP << EOF
 
-                    withCredentials([
-                        usernamePassword(
-                            credentialsId: 'rds-credentials',
-                            usernameVariable: 'DB_USER',
-                            passwordVariable: 'DB_PASS'
-                        )
-                    ]) {
+                    docker pull $IMAGE_NAME
 
-                        sh '''
-                            ssh -o StrictHostKeyChecking=no ${APP_SERVER} "
-                            
-                            docker stop ${CONTAINER_NAME} || true
-                            docker rm ${CONTAINER_NAME} || true
+                    docker stop myapp || true
+                    docker rm myapp || true
 
-                            docker load -i /tmp/app.tar
+                    docker run -d \
+                      --name myapp \
+                      -p 8080:8080 \
+                      -e DB_URL="$DB_URL" \
+                      -e DB_USER="$DB_USER" \
+                      -e DB_PASSWORD="$DB_PASSWORD" \
+                      $IMAGE_NAME
 
-                            docker run -d \
-                                --name ${CONTAINER_NAME} \
-                                -p 8080:8080 \
-                                -e DB_URL=jdbc:mysql://${RDS_HOST}:${RDS_PORT}/${RDS_DB} \
-                                -e DB_USER=${DB_USER} \
-                                -e DB_PASS=${DB_PASS} \
-                                ${IMAGE_NAME}:latest
-                            "
-                        }
-                    }
+                    EOF
+                    '''
                 }
             }
-        }
-    }
-
-    post {
-
-        success {
-            echo 'Deployment successful!'
-        }
-
-        failure {
-            echo 'Deployment failed!'
         }
     }
 }
