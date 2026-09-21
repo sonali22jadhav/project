@@ -2,6 +2,8 @@ pipeline {
     agent any
 
     environment {
+         MAVEN_HOME = '/mnt/build-tools/apache-maven-3.9.16'
+         PATH = "${MAVEN_HOME}/bin:${env.PATH}"
         IMAGE_NAME = "sonali22jadhav/myapp:${BUILD_NUMBER}"
     }
 
