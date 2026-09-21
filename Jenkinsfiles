@@ -42,7 +42,7 @@ pipeline {
             steps {
                 sshagent(['app-server-ssh']) {
                     sh '''
-                    ssh jenkins@ 13.201.183.204<< EOF
+                    ssh jenkins@13.201.183.204<< EOF
 
                     docker pull $IMAGE_NAME
 
