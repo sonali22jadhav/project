@@ -1,4 +1,3 @@
-```jsp
 <%@ page import="java.sql.*"%>
 <%
     String userName = request.getParameter("userName");
@@ -20,7 +19,7 @@
         dbPassword
     );
 
-    String sql = "INSERT INTO users " +
+    String sql = "INSERT INTO USER " +
                  "(first_name, last_name, email, username, password, regdate) " +
                  "VALUES (?, ?, ?, ?, ?, CURDATE())";
 
@@ -43,4 +42,3 @@
     ps.close();
     con.close();
 %>
-```
